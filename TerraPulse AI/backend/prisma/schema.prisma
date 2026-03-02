@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ScanStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id            String               @id @default(cuid())
+  email         String               @unique
+  password      String
+  role          String               @default("viewer")
+  createdAt     DateTime             @default(now())
+  scanJobs      ScanJob[]
+  verifications VerificationRecord[]
+}
+
+model Project {
+  id        String    @id @default(cuid())
+  name      String
+  region    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sectors   Sector[]
+  scanJobs  ScanJob[]
+}
+
+model Sector {
+  id        String   @id @default(cuid())
+  label     String
+  idx       Int
+  x         Float
+  y         Float
+  health    Int
+  biomass   Int
+  species   Int
+  growth    Float
+  co2Offset Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ScanJob {
+  id          String     @id @default(cuid())
+  mode        String
+  inputUrl    String?
+  status      ScanStatus @default(QUEUED)
+  progress    Int        @default(0)
+  result      Json?
+  error       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+model VerificationRecord {
+  id          String   @id @default(cuid())
+  source      String
+  hash        String
+  algorithm   String   @default("sha256")
+  payload     Json
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
